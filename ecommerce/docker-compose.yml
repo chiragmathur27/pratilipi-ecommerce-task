@@ -1,0 +1,117 @@
+services:
+  django:
+    build:
+      context: .
+    container_name: django_app
+    command: >
+      bash -c "until pg_isready -h users_db -U postgres; do sleep 1; done &&
+           echo 'Database is ready!' &&
+           sleep 5 &&  # Optional: Wait for a few extra seconds
+           python manage.py makemigrations users &&
+           python manage.py makemigrations orders &&
+           python manage.py makemigrations products &&
+           python manage.py migrate users &&
+           python manage.py migrate orders &&
+           python manage.py migrate products &&
+           python manage.py migrate admin &&
+           python manage.py migrate users --database=users_db &&
+           python manage.py migrate orders --database=orders_db &&
+           python manage.py migrate products --database=products_db &&
+           python manage.py start_consumer &&
+           python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - users_db
+      - products_db
+      - orders_db
+      - kafka
+    environment:
+      - DJANGO_DB_USER=postgres
+      - DJANGO_DB_PASSWORD=Shashwat@1
+      - DJANGO_DB_HOST=users_db
+      - DJANGO_DB_PORT=5439
+    networks:
+      - app_network
+
+  # PostgreSQL for Users Service
+  users_db:
+    image: postgres:13
+    container_name: users_db
+    environment:
+      POSTGRES_DB: users_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Shashwat@1
+    ports:
+      - "5439:5432"
+    volumes:
+      - pgdata_users:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # PostgreSQL for Products Service
+  products_db:
+    image: postgres:13
+    container_name: products_db
+    environment:
+      POSTGRES_DB: products_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Shashwat@1
+    ports:
+      - "5440:5432"
+    volumes:
+      - pgdata_products:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # PostgreSQL for Orders Service
+  orders_db:
+    image: postgres:13
+    container_name: orders_db
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: Shashwat@1
+    ports:
+      - "5441:5432"
+    volumes:
+      - pgdata_orders:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2182
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2182:2182"
+    networks:
+      - app_network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2182
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - app_network
+
+volumes:
+  pgdata_users:
+  pgdata_products:
+  pgdata_orders:
+
+networks:
+  app_network:
+    driver: bridge
