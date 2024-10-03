@@ -8,11 +8,44 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import User
 from .serializers import RegisterSerializer, LoginSerializer, UserSerializer
+from django.contrib.auth.hashers import check_password
+from django.shortcuts import get_object_or_404
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
+    def get(self, request, user_id=None):
+        if user_id:
+            product = get_object_or_404(self.get_queryset(), id=user_id)  # Simplified using get_object_or_404
+            serializer = RegisterSerializer(product)
+            return Response(serializer.data)
+        else:
+            products = self.get_queryset()
+            serializer = RegisterSerializer(products, many=True)
+            return Response(serializer.data)
+    
+    def put(self, request, user_id):
+        try:
+            user = get_object_or_404(User, id=user_id)
+            
+            # Ensure users can only update their own data
+            if request.user.id != user.id:
+                return Response(
+                    {"error": "You can only update your own data"}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            serializer = RegisterSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class UpdateUserProfileView(APIView):
     permission_classes = [IsAuthenticated]
