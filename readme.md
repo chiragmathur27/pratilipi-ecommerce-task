@@ -2,14 +2,14 @@
 
 ## Overview
 
-This project is a microservices-based e-commerce application built with Django, utilizing user_nameQL for database management and Apache Kafka for event-driven communication between services.
+This project is a microservices-based e-commerce application built with Django, utilizing PostgresQL for database management and Apache Kafka for event-driven communication between services.
 
 ## System Requirements
 
 ### Component Versions
 
 * Python: 3.9
-* user_nameQL: 13
+* PostgresQL: 13
 * Java: 17 (for Apache Kafka)
 * Apache Kafka: 2.8.0
 
@@ -23,7 +23,7 @@ The application is divided into three main microservices:
 * **Products Service**: Manages product catalog and inventory
 * **Orders Service**: Processes and manages orders
 
-Each service operates with its dedicated user_nameQL database.
+Each service operates with its dedicated PostgresQL database.
 
 ## Setup Instructions
 
@@ -148,3 +148,4 @@ Execute migrations for all services:
 ```
 
 Visit http://localhost:8000 to access the application.
+Added collection json in that can be imported in postman.
